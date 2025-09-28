@@ -1,6 +1,6 @@
+import flet as ft
 import csv
 
-#Global weights for each trait
 TRAIT_WEIGHTS = {
     "Medical_Knowledge": 2,
     "Location_Match": 3,
@@ -9,10 +9,11 @@ TRAIT_WEIGHTS = {
     "Handwriting_Match": 1
 }
 
-#Scoring function
-def score_suspect(suspect, trait_weights):
+CSV_FILE = "jack_data.csv"
+
+def score_suspect(suspect):
     score = 0
-    for trait, weight in trait_weights.items():
+    for trait, weight in TRAIT_WEIGHTS.items():
         value = suspect.get(trait, "No")
         if value in ["Yes", "High"]:
             score += weight
@@ -20,27 +21,58 @@ def score_suspect(suspect, trait_weights):
             score += weight * 0.5
     return score
 
-#Load suspects from CSV
-def load_suspects(file_path):
-    with open(file_path, newline='', encoding='utf-8') as f:
+def load_suspects():
+    with open(CSV_FILE, newline='', encoding='utf-8') as f:
         return list(csv.DictReader(f))
 
-# Rank Suspects and display results
-def rank_suspects(suspects, trait_weights):
-    scored = [
-        {"Name": s["Name"], "Score": score_suspect(s, trait_weights)}
-        for s in suspects
-    ]
-    return sorted(scored, key=lambda x: x["Score"],reverse=True)
+def add_suspect(data):
+    with open(CSV_FILE, "a", newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=data.keys())
+        writer.writerow(data)
 
-# Main execution
-def main():
-    suspects = load_suspects("jack_data.csv")
-    ranked = rank_suspects(suspects, TRAIT_WEIGHTS)
+def main(page: ft.Page):
+    page.title = "Jack the Ripper Suspect Profiler"
+    page.scroll = "AUTO"
 
-    print("🔍 Jack the Ripper Suspect Rankings:")
-    for entry in ranked:
-        print(f"{entry['Name']}: {entry['Score']} points")
+    name = ft.TextField(label="Name")
+    traits = {
+        trait: ft.Dropdown(label=trait, options=[
+            ft.dropdown.Option("Yes"),
+            ft.dropdown.Option("No"),
+            ft.dropdown.Option("High"),
+            ft.dropdown.Option("Medium"),
+            ft.dropdown.Option("Low")
+        ]) for trait in TRAIT_WEIGHTS
+    }
 
-if __name__ == "__main__":
-    main()
+    result = ft.Column()
+
+    def refresh():
+        result.controls.clear()
+        suspects = load_suspects()
+        ranked = sorted(suspects, key=score_suspect, reverse=True)
+        for s in ranked:
+            score = score_suspect(s)
+            result.controls.append(ft.Text(f"{s['Name']}: {score} points"))
+        page.update()
+
+    def on_submit(e):
+        new_data = {"Name": name.value}
+        for trait, dropdown in traits.items():
+            new_data[trait] = dropdown.value or "No"
+        add_suspect(new_data)
+        name.value = ""
+        for dropdown in traits.values():
+            dropdown.value = None
+        refresh()
+
+    form = ft.Column([
+        name,
+        *traits.values(),
+        ft.ElevatedButton("Add Suspect", on_click=on_submit)
+    ])
+
+    page.add(form, ft.Divider(), result)
+    refresh()
+
+ft.app(target=main)

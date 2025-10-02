@@ -56,7 +56,7 @@ def main(page: ft.Page):
             result.controls.append(ft.Text(f"{s['Name']}: {score} points"))
         page.update()
 
-    def on_submit(e):
+    def on_submit(_): # e is required by flet
         new_data = {"Name": name.value}
         for trait, dropdown in traits.items():
             new_data[trait] = dropdown.value or "No"

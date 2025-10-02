@@ -31,7 +31,7 @@ Jack the Ripper Suspect Profiler is a Python-based application designed to help 
    In your terminal, run:
    ```bash
    git clone https://github.com/blovelace84/Jack-the-Ripper-Repo.git
-   cd <repository-folder>
+   cd Jack-the-Ripper-Repo
    ```
 
 4. **Run the application**  
